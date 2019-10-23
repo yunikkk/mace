@@ -160,7 +160,8 @@ MaceSupportedOps = [
 
 MaceOp = Enum('MaceOp', [(op, op) for op in MaceSupportedOps], type=str)
 
-MaceFixedDataFormatOps = [MaceOp.BatchNorm,
+MaceFixedDataFormatOps = [MaceOp.ArgMax,
+                          MaceOp.BatchNorm,
                           MaceOp.BatchToSpaceND,
                           MaceOp.Conv2D,
                           MaceOp.Deconv2D,
