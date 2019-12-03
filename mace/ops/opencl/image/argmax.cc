@@ -11,7 +11,9 @@ MaceStatus ArgMaxKernel::Compute(OpContext *context, const Tensor *input, Tensor
   const index_t width = input->dim(2);
   const index_t channels = input->dim(3);
 
-  const index_t channel_blocks = RoundUpDiv4(channels);
+  const uint32_t channel_blocks = RoundUpDiv4(channels);
+  const int remain_channels = channel_blocks * 4 - channels;
+
   std::vector<index_t> output_shape = input->shape();
   output_shape[3] = 1;
 
@@ -32,7 +34,11 @@ MaceStatus ArgMaxKernel::Compute(OpContext *context, const Tensor *input, Tensor
     kwg_size_ = static_cast<uint32_t>(runtime->GetKernelMaxWorkGroupSize(kernel_));
   }
 
-  const uint32_t gws[3] = {1, static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
+  const uint32_t gws[3] = {
+      channel_blocks,
+      static_cast<uint32_t>(width),
+      static_cast<uint32_t>(height)
+  };
 
   MACE_OUT_OF_RANGE_INIT(kernel_);       
   if (!IsVecEqual(input_shape_, input->shape())) {
@@ -45,10 +51,11 @@ MaceStatus ArgMaxKernel::Compute(OpContext *context, const Tensor *input, Tensor
     MACE_OUT_OF_RANGE_SET_ARGS(kernel_);
     MACE_SET_3D_GWS_ARGS(kernel_, gws);
     kernel_.setArg(idx++, *(input->opencl_image()));
-    kernel_.setArg(idx++, static_cast<uint32_t>(channel_blocks));
+    kernel_.setArg(idx++, static_cast<uint32_t>(channels));
+    kernel_.setArg(idx++, remain_channels);
     kernel_.setArg(idx++, *(output->opencl_image()));
     input_shape_ = input->shape();
-  }             
+  }
 
   const std::vector<uint32_t> lws = Default3DLocalWS(runtime, gws, kwg_size_);
   std::string tuning_key = Concat("argmax_opencl_kernel", output->dim(0), output->dim(1), output->dim(2), output->dim(3));
