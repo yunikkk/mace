@@ -20,25 +20,24 @@ __kernel void argmax(OUT_OF_RANGE_PARAMS
   const int width = global_size_dim1;
 
   int idx = 0;
-  float max = -1;
+  float max = -FLT_MAX;
 
   for (int i = 0; i < channel_blocks; ++i) {
     const int pos = mad24(i, width, w);
     DATA_TYPE4 in = READ_IMAGET(input, SAMPLER, (int2)(pos, h));
 
     const int i4 = (i * 4);
-//    const bool xGreater = in.x > max;
+    idx = select(idx, i4, in.x > max);
     max = select(max, in.x, in.x > max);
-    idx = select(i4, i4, in.x > max);
 
+    idx = select(idx, i4 + 1, in.y > max);
     max = select(max, in.y, in.y > max);
-    idx = select(i4, i4 + 1, in.y > max);
 
+    idx = select(idx, i4 + 2, in.z > max);
     max = select(max, in.z, in.z > max);
-    idx = select(i4, i4 + 2, in.z > max);
 
+    idx = select(idx, i4 + 3, in.w > max);
     max = select(max, in.w, in.w > max);
-    idx = select(i4, i4 + 3, in.w > max);
   }
 
   const int pos = mad24(channel_blocks, width, w);
@@ -46,19 +45,15 @@ __kernel void argmax(OUT_OF_RANGE_PARAMS
 
   const int i4 = (channel_blocks * 4);
 
-  switch(remain_channels) {
-    case 0:
-      max = select(max, in.w, in.w > max);
-      idx = select(i4, i4 + 3, in.w > max);
+  switch (remain_channels) {
     case 1:
+      idx = select(idx, i4 + 2, in.z > max);
       max = select(max, in.z, in.z > max);
-      idx = select(i4, i4 + 2, in.z > max);
     case 2:
+      idx = select(idx, i4 + 1, in.y > max);
       max = select(max, in.y, in.y > max);
-      idx = select(i4, i4 + 1, in.y > max);
     case 3:
-      max = select(max, in.x, in.x > max);
-      idx = select(i4, i4, in.x > max);
+      idx = select(idx, i4, in.x > max);
   }
 
   WRITE_IMAGET(output, (int2)(w, h), (float4)(idx, 0, 0, 0));
