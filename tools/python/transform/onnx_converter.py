@@ -416,7 +416,7 @@ class OnnxConverter(base_converter.ConverterInterface):
 
         self._isKaldi = False
 
-        polish_available = True
+        polish_available = False
         print("onnx model IR version: ", ir_version)
         for imp in opset_imp:
             domain = imp.domain
